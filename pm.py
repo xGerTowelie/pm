@@ -91,7 +91,7 @@ def clone_repos():
     repos = get_repos()
     selector = RepoSelector(repos)
     palette = [
-        ('normal', 'light gray', 'black'),
+        ('normal', 'light gray', 'default'),
         ('highlight', 'black', 'light gray'),
         ('selected', 'black', 'dark cyan'),
     ]
