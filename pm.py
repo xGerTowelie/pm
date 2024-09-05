@@ -20,7 +20,7 @@ def get_repos():
 class CustomCheckBox(urwid.WidgetWrap):
     unchecked_icon = "\uf0c8"  # Nerd Font empty checkbox
     checked_icon = "\uf14a"    # Nerd Font checked checkbox
-    cloning_icon = "\uf110"    # Nerd Font spinner
+    spinner_frames = ["\uf110", "\uf111", "\uf112", "\uf113"]  # Spinner frames
     success_color = 'light green'  # Background color for success
 
     def __init__(self, label):
@@ -28,8 +28,10 @@ class CustomCheckBox(urwid.WidgetWrap):
         self.state = False
         self.cloning = False
         self.cloned = False  # Track if this repo has already been cloned
+        self.spinner_index = 0  # Index for spinner frames
         self.attr = urwid.AttrMap(self.checkbox, 'normal', 'highlight')
         super().__init__(self.attr)
+        self.update_timer = None  # Timer reference for spinner animation
 
     def toggle_state(self):
         if not self.cloned:  # Only allow toggling if not cloned
@@ -46,23 +48,47 @@ class CustomCheckBox(urwid.WidgetWrap):
         return self.checkbox.text.split(" ", 1)[1].split(" (cloning...)")[0]
 
     def set_cloning(self):
-        """Indicate that the repo is being cloned."""
+        """Indicate that the repo is being cloned with an animated spinner."""
         self.cloning = True
-        self.checkbox.set_text(f"{self.cloning_icon} {self.label} (cloning...)")
+        self.start_spinner()
+        self.checkbox.set_text(f"{self.spinner_frames[self.spinner_index]} {self.label} (cloning...)")
         self.attr.set_attr_map({None: 'highlight'})  # Change background color if needed
+
+    def start_spinner(self):
+        """Start the spinner animation."""
+        if self.update_timer:
+            self.update_timer.cancel()  # Cancel any existing timer
+        self.update_timer = threading.Timer(0.1, self.animate_spinner)
+        self.update_timer.start()
+
+    def animate_spinner(self):
+        """Update spinner frame."""
+        if self.cloning:
+            self.spinner_index = (self.spinner_index + 1) % len(self.spinner_frames)
+            self.checkbox.set_text(f"{self.spinner_frames[self.spinner_index]} {self.label} (cloning...)")
+            self._redraw()
+            self.start_spinner()
 
     def set_cloned(self):
         """Mark the repo as cloned with a checkmark."""
         self.cloning = False
         self.cloned = True  # Mark this repo as cloned
+        if self.update_timer:
+            self.update_timer.cancel()  # Stop the spinner animation
         self.checkbox.set_text(f"{self.checked_icon} {self.label} (cloned)")
         self.attr.set_attr_map({None: 'success'})  # Set background color to success
 
     def set_error(self):
         """Mark the repo as errored with a message."""
         self.cloning = False
+        if self.update_timer:
+            self.update_timer.cancel()  # Stop the spinner animation
         self.checkbox.set_text(f"{self.unchecked_icon} {self.label} (error)")
         self.attr.set_attr_map({None: 'error'})  # Set a special style for errors
+
+    def _redraw(self):
+        """Force the widget to redraw."""
+        self.attr.set_attr_map(self.attr.attr_map)  # Update the widget display
 
 
 class RepoSelector(urwid.ListBox):
