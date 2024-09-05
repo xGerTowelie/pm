@@ -65,6 +65,7 @@ class RepoSelector(urwid.ListBox):
         self.repos = repos
         body = [CustomCheckBox(repo) for repo in repos]
         super().__init__(urwid.SimpleFocusListWalker(body))
+        self.update_loop = None  # Reference to the update loop
 
     def keypress(self, size, key):
         if key == 'j':
@@ -115,8 +116,12 @@ class RepoSelector(urwid.ListBox):
 
     def _redraw(self):
         """Force the ListBox to redraw the UI."""
-        urwid.emit_signal(self, 'redraw')  # Emit signal for UI refresh
+        if self.update_loop:
+            self.update_loop.set_alarm_in(0.1, self._force_redraw)
+
+    def _force_redraw(self, loop, data):
         self._invalidate()  # Redraw the listbox
+        loop.set_alarm_in(0.1, self._force_redraw)  # Continue updating periodically
 
 
 class CustomMainLoop(urwid.MainLoop):
@@ -140,6 +145,8 @@ def clone_repos():
         ('error', 'black', 'dark red'),  # Special color for error state
     ]
     loop = CustomMainLoop(selector, palette)
+    selector.update_loop = loop  # Provide reference to the main loop for updates
+    loop.set_alarm_in(0.1, selector._force_redraw)  # Start periodic redraws
     loop.screen.set_terminal_properties(colors=256)
     loop.run()
 
