@@ -25,12 +25,16 @@ class CustomCheckBox(urwid.WidgetWrap):
         self.checkbox = urwid.Text(f"{self.unchecked_icon} {label}")
         self.state = False
         self.cloning = False
+        self.cloned = False  # Track if this repo has already been cloned
         self.attr = urwid.AttrMap(self.checkbox, 'normal', 'highlight')
         super().__init__(self.attr)
 
     def toggle_state(self):
         self.state = not self.state
-        icon = self.checked_icon if self.state else self.unchecked_icon
+        if self.cloned:
+            icon = self.checked_icon
+        else:
+            icon = self.checked_icon if self.state else self.unchecked_icon
         self.checkbox.set_text(f"{icon} {self.label}")
         if self.state:
             self.attr.set_attr_map({None: 'selected'})
@@ -50,6 +54,7 @@ class CustomCheckBox(urwid.WidgetWrap):
     def set_cloned(self):
         """Mark the repo as cloned with a checkmark."""
         self.cloning = False
+        self.cloned = True  # Mark this repo as cloned
         self.checkbox.set_text(f"{self.checked_icon} {self.label} (cloned)")
         self.attr.set_attr_map({None: 'selected'})  # Change background color if needed
 
@@ -97,7 +102,7 @@ class RepoSelector(urwid.ListBox):
     def clone_selected(self):
         """Clone selected repos sequentially and update UI."""
         for checkbox in self.body:
-            if checkbox.state:  # Check if repo is selected
+            if checkbox.state and not checkbox.cloned:  # Check if repo is selected and not already cloned
                 threading.Thread(target=self.clone_repo, args=(checkbox,)).start()
 
     def clone_repo(self, checkbox):
