@@ -13,24 +13,27 @@ def get_repos():
     return [repo for repo in all_repos if repo and repo not in existing_repos]
 
 class CustomCheckBox(urwid.WidgetWrap):
+    unchecked_icon = "\uf0c8"  # Nerd Font empty checkbox
+    checked_icon = "\uf14a"    # Nerd Font checked checkbox
+
     def __init__(self, label):
-        self.checkbox = urwid.CheckBox(label)
+        self.checkbox = urwid.Text(f"{self.unchecked_icon} {label}")
+        self.state = False
         self.attr = urwid.AttrMap(self.checkbox, 'normal', 'highlight')
         super().__init__(self.attr)
 
-    @property
-    def state(self):
-        return self.checkbox.state
-
     def toggle_state(self):
-        self.checkbox.toggle_state()
-
-    def set_state(self, state):
-        self.checkbox.set_state(state)
+        self.state = not self.state
+        icon = self.checked_icon if self.state else self.unchecked_icon
+        self.checkbox.set_text(f"{icon} {self.label}")
+        if self.state:
+            self.attr.set_attr_map({None: 'selected'})
+        else:
+            self.attr.set_attr_map({None: 'normal'})
 
     @property
     def label(self):
-        return self.checkbox.label
+        return self.checkbox.text.split(" ", 1)[1]
 
 class RepoSelector(urwid.ListBox):
     def __init__(self, repos):
@@ -58,6 +61,8 @@ class RepoSelector(urwid.ListBox):
             if isinstance(checkbox, CustomCheckBox):
                 checkbox.toggle_state()
             return None
+        elif key == 'q':
+            raise urwid.ExitMainLoop()
         return super().keypress(size, key)
 
     def clone_selected(self):
@@ -76,7 +81,8 @@ def clone_repos():
         ('highlight', 'black', 'light gray'),
         ('selected', 'black', 'dark cyan'),
     ]
-    loop = urwid.MainLoop(selector, palette)
+    loop = urwid.MainLoop(selector, palette, unhandled_input=lambda key: key == 'q' and sys.exit(0))
+    loop.screen.set_terminal_properties(colors=256)
     loop.run()
 
 def get_repo_status(repo_path):
