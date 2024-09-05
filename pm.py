@@ -3,6 +3,7 @@ import os
 import subprocess
 import threading
 import urwid
+import time
 
 
 def run_command(command):
@@ -19,7 +20,8 @@ def get_repos():
 class CustomCheckBox(urwid.WidgetWrap):
     unchecked_icon = "\uf0c8"  # Nerd Font empty checkbox
     checked_icon = "\uf14a"    # Nerd Font checked checkbox
-    cloning_icon = "\uf110"    # Nerd Font spinner (for cloning in progress)
+    cloning_icon = "\uf110"    # Nerd Font spinner
+    success_color = 'light green'  # Background color for success
 
     def __init__(self, label):
         self.checkbox = urwid.Text(f"{self.unchecked_icon} {label}")
@@ -46,7 +48,7 @@ class CustomCheckBox(urwid.WidgetWrap):
     def set_cloning(self):
         """Indicate that the repo is being cloned."""
         self.cloning = True
-        self.checkbox.set_text(f"{self.unchecked_icon} {self.label} (cloning...)")
+        self.checkbox.set_text(f"{self.cloning_icon} {self.label} (cloning...)")
         self.attr.set_attr_map({None: 'highlight'})  # Change background color if needed
 
     def set_cloned(self):
@@ -54,7 +56,7 @@ class CustomCheckBox(urwid.WidgetWrap):
         self.cloning = False
         self.cloned = True  # Mark this repo as cloned
         self.checkbox.set_text(f"{self.checked_icon} {self.label} (cloned)")
-        self.attr.set_attr_map({None: 'selected'})  # Change background color if needed
+        self.attr.set_attr_map({None: 'success'})  # Set background color to success
 
     def set_error(self):
         """Mark the repo as errored with a message."""
@@ -155,6 +157,7 @@ def clone_repos():
         ('normal', 'light gray', 'default'),  # Use terminal's background
         ('highlight', 'black', 'light gray'),
         ('selected', 'black', 'dark cyan'),
+        ('success', 'light green', 'default'),  # Background color for success
         ('error', 'black', 'dark red'),  # Special color for error state
     ]
     loop = CustomMainLoop(selector, palette)
