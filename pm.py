@@ -3,6 +3,7 @@ import os
 import subprocess
 import urwid
 import git
+from termcolor import colored
 
 def run_command(command):
     return subprocess.run(command, capture_output=True, text=True, shell=True).stdout.strip()
@@ -42,8 +43,10 @@ class RepoSelector(urwid.ListBox):
         super().__init__(urwid.SimpleFocusListWalker(body))
 
     def keypress(self, size, key):
-        if key in ('j', 'k'):
-            return super().keypress(size, 'down' if key == 'j' else 'up')
+        if key == 'j':
+            return super().keypress(size, 'down')
+        elif key == 'k':
+            return super().keypress(size, 'up')
         elif key == 'G':
             self.set_focus(len(self.body) - 1)
             self._invalidate()
@@ -102,11 +105,22 @@ def get_repo_status(repo_path):
 
 def status():
     projects_dir = os.path.expanduser("~/projects")
-    for repo_name in os.listdir(projects_dir):
+    print(colored("Project Status:", attrs=['bold', 'underline']))
+    print()
+    for repo_name in sorted(os.listdir(projects_dir)):
         repo_path = os.path.join(projects_dir, repo_name)
         if os.path.isdir(repo_path) and os.path.exists(os.path.join(repo_path, '.git')):
             status = get_repo_status(repo_path)
-            print(f"{repo_name}: {status}")
+            if status == "OK":
+                status_color = 'green'
+            elif status == "UNCOMMITTED":
+                status_color = 'yellow'
+            elif status == "UNSYNCED":
+                status_color = 'red'
+            else:
+                status_color = 'magenta'
+            print(f"{colored(repo_name, 'cyan', attrs=['bold'])}: {colored(status, status_color)}")
+    print()
 
 def main():
     parser = argparse.ArgumentParser(description="Project Manager")
