@@ -20,7 +20,8 @@ def get_repos():
 class CustomCheckBox(urwid.WidgetWrap):
     unchecked_icon = "\uf0c8"  # Nerd Font empty checkbox
     checked_icon = "\uf14a"    # Nerd Font checked checkbox
-    spinner_frames = ["\uf110", "\uf111", "\uf112", "\uf113"]  # Spinner frames
+    spinner_frames = ["\U000f0a9f", "\U000f0aa0", "\U000f0aa1", "\U000f0aa2", "\U000f0aa3", "\U000f0aa4","\U000f0aa5" ]  # Spinner frames
+    
     success_color = 'light green'  # Background color for success
 
     def __init__(self, label):
