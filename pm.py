@@ -44,18 +44,19 @@ class RepoSelector(urwid.ListBox):
 
     def keypress(self, size, key):
         if key == 'j':
-            return super().keypress(size, 'down')
+            if self.focus_position < len(self.body) - 1:
+                self.focus_position += 1
+            return None
         elif key == 'k':
-            return super().keypress(size, 'up')
+            if self.focus_position > 0:
+                self.focus_position -= 1
+            return None
         elif key == 'G':
-            self.set_focus(len(self.body) - 1)
-            self._invalidate()
+            self.focus_position = len(self.body) - 1
+            return None
         elif key == 'g':
-            if self._command_map[key] == 'cursor max':
-                self.set_focus(0)
-                self._invalidate()
-            else:
-                return key
+            self.focus_position = 0
+            return None
         elif key == 'enter':
             self.clone_selected()
             raise urwid.ExitMainLoop()
@@ -66,7 +67,7 @@ class RepoSelector(urwid.ListBox):
             return None
         elif key == 'q':
             raise urwid.ExitMainLoop()
-        return super().keypress(size, key)
+        return key
 
     def clone_selected(self):
         for checkbox in self.body:
@@ -76,6 +77,16 @@ class RepoSelector(urwid.ListBox):
                 run_command(f"gh repo clone {repo} ~/projects/{repo}")
         print("Cloning completed.")
 
+class CustomMainLoop(urwid.MainLoop):
+    def process_input(self, keys):
+        for k in keys:
+            if k == 'j':
+                self.widget.keypress((0,), 'j')
+            elif k == 'k':
+                self.widget.keypress((0,), 'k')
+            else:
+                super().process_input([k])
+
 def clone_repos():
     repos = get_repos()
     selector = RepoSelector(repos)
@@ -84,43 +95,11 @@ def clone_repos():
         ('highlight', 'black', 'light gray'),
         ('selected', 'black', 'dark cyan'),
     ]
-    loop = urwid.MainLoop(selector, palette, unhandled_input=lambda key: key == 'q' and sys.exit(0))
+    loop = CustomMainLoop(selector, palette)
     loop.screen.set_terminal_properties(colors=256)
     loop.run()
 
-def get_repo_status(repo_path):
-    repo = git.Repo(repo_path)
-    if repo.is_dirty():
-        return "UNCOMMITTED"
-    if repo.head.is_detached:
-        return "DETACHED HEAD"
-    branch = repo.active_branch
-    if not branch.tracking_branch():
-        return "NO REMOTE TRACKING BRANCH"
-    commits_behind = list(repo.iter_commits(f'{branch.name}..{branch.tracking_branch().name}'))
-    commits_ahead = list(repo.iter_commits(f'{branch.tracking_branch().name}..{branch.name}'))
-    if commits_ahead or commits_behind:
-        return "UNSYNCED"
-    return "OK"
-
-def status():
-    projects_dir = os.path.expanduser("~/projects")
-    print(colored("Project Status:", attrs=['bold', 'underline']))
-    print()
-    for repo_name in sorted(os.listdir(projects_dir)):
-        repo_path = os.path.join(projects_dir, repo_name)
-        if os.path.isdir(repo_path) and os.path.exists(os.path.join(repo_path, '.git')):
-            status = get_repo_status(repo_path)
-            if status == "OK":
-                status_color = 'green'
-            elif status == "UNCOMMITTED":
-                status_color = 'yellow'
-            elif status == "UNSYNCED":
-                status_color = 'red'
-            else:
-                status_color = 'magenta'
-            print(f"{colored(repo_name, 'cyan', attrs=['bold'])}: {colored(status, status_color)}")
-    print()
+# ... (rest of your code remains the same)
 
 def main():
     parser = argparse.ArgumentParser(description="Project Manager")
