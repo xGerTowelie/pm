@@ -1,0 +1,8 @@
+altgraph==0.17.4
+packaging==24.1
+pyinstaller==6.10.0
+pyinstaller-hooks-contrib==2024.8
+setuptools==74.1.1
+typing_extensions==4.12.2
+urwid==2.6.15
+wcwidth==0.2.13
