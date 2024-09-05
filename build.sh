@@ -10,7 +10,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Compile the Python project with PyInstaller
-pyinstaller --onefile fm.py
+pyinstaller --onefile pm.py
 
 # Deactivate the virtual environment
 deactivate
