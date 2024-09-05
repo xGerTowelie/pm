@@ -30,16 +30,14 @@ class CustomCheckBox(urwid.WidgetWrap):
         super().__init__(self.attr)
 
     def toggle_state(self):
-        self.state = not self.state
-        if self.cloned:
-            icon = self.checked_icon
-        else:
+        if not self.cloned:  # Only allow toggling if not cloned
+            self.state = not self.state
             icon = self.checked_icon if self.state else self.unchecked_icon
-        self.checkbox.set_text(f"{icon} {self.label}")
-        if self.state:
-            self.attr.set_attr_map({None: 'selected'})
-        else:
-            self.attr.set_attr_map({None: 'normal'})
+            self.checkbox.set_text(f"{icon} {self.label}")
+            if self.state:
+                self.attr.set_attr_map({None: 'selected'})
+            else:
+                self.attr.set_attr_map({None: 'normal'})
 
     @property
     def label(self):
@@ -68,21 +66,20 @@ class CustomCheckBox(urwid.WidgetWrap):
 class RepoSelector(urwid.ListBox):
     def __init__(self, repos):
         self.repos = repos
-        body = [CustomCheckBox(repo) for repo in repos]
-        super().__init__(urwid.SimpleFocusListWalker(body))
+        self.body = [CustomCheckBox(repo) for repo in repos]
+        self.filtered_body = urwid.SimpleFocusListWalker(self.body)
+        super().__init__(self.filtered_body)
         self.update_loop = None  # Reference to the update loop
 
     def keypress(self, size, key):
         if key == 'j':
-            if self.focus_position < len(self.body) - 1:
-                self.focus_position += 1
+            self.move_focus(1)
             return None
         elif key == 'k':
-            if self.focus_position > 0:
-                self.focus_position -= 1
+            self.move_focus(-1)
             return None
         elif key == 'G':
-            self.focus_position = len(self.body) - 1
+            self.focus_position = len(self.filtered_body) - 1
             return None
         elif key == 'g':
             self.focus_position = 0
@@ -98,6 +95,17 @@ class RepoSelector(urwid.ListBox):
         elif key == 'q':
             raise urwid.ExitMainLoop()
         return key
+
+    def move_focus(self, direction):
+        """Move focus while skipping cloned repositories."""
+        current_pos = self.focus_position
+        new_pos = current_pos + direction
+        while 0 <= new_pos < len(self.filtered_body):
+            if not self.filtered_body[new_pos].cloned:
+                self.focus_position = new_pos
+                break
+            new_pos += direction
+        return None
 
     def clone_selected(self):
         """Clone selected repos sequentially and update UI."""
